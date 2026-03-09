@@ -267,7 +267,6 @@ function SuccessScreen({ guest, settings }) {
 function SettingsEditor({ settings, onSave }) {
   const [draft, setDraft] = useState({ ...settings });
   const [saved, setSaved] = useState(false);
-  const [focusKey, setFocusKey] = useState("");
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
 
   const handleSave = () => {
@@ -276,26 +275,29 @@ function SettingsEditor({ settings, onSave }) {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const iStyle = (k) => ({
+  const inputBase = {
     width: "100%", padding: "10px 14px", borderRadius: 10,
-    border: `1.5px solid ${focusKey === k ? "#c9a84c" : "#e2d5b8"}`,
+    border: "1.5px solid #e2d5b8",
     background: "rgba(255,253,247,0.9)", fontSize: 14, color: "#3d2e1a",
-    outline: "none", fontFamily: "inherit", direction: "rtl", transition: "border-color 0.2s",
-  });
+    outline: "none", fontFamily: "inherit", transition: "border-color 0.2s",
+  };
 
-  const EditField = ({ label, fieldKey, type = "text", placeholder = "" }) => (
+  const handleFocus = (e) => { e.target.style.borderColor = "#c9a84c"; };
+  const handleBlur = (e) => { e.target.style.borderColor = "#e2d5b8"; };
+
+  const EditField = useCallback(({ label, fieldKey, type = "text", placeholder = "" }) => (
     <Field label={label}>
       <input
         type={type}
-        style={{ ...iStyle(fieldKey), direction: type === "datetime-local" ? "ltr" : "rtl", textAlign: type === "datetime-local" ? "left" : "right" }}
+        style={{ ...inputBase, direction: type === "datetime-local" ? "ltr" : "rtl", textAlign: type === "datetime-local" ? "left" : "right" }}
         value={draft[fieldKey]}
         placeholder={placeholder}
         onChange={(e) => set(fieldKey, e.target.value)}
-        onFocus={() => setFocusKey(fieldKey)}
-        onBlur={() => setFocusKey("")}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       />
     </Field>
-  );
+  ), [draft]);
 
   const SectionTitle = ({ children }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "22px 0 14px" }}>
