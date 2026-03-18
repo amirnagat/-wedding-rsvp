@@ -418,14 +418,27 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const supabaseRef = useRef(supabase);
+  useEffect(() => { supabaseRef.current = supabase; }, [supabase]);
+
   const load = useCallback(async () => {
     setLoading(true);
-    try { const data = supabase ? await supabase.select() : lsGetGuests(); setGuests(data || []); }
-    catch { setGuests(lsGetGuests()); }
+    try {
+      const sb = supabaseRef.current;
+      const data = sb ? await sb.select() : lsGetGuests();
+      setGuests(data || []);
+    } catch { setGuests(lsGetGuests()); }
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
-  useEffect(() => { if (tab === "guests") load(); }, [tab, load]);
+  const loadedOnce = useRef(false);
+  useEffect(() => {
+    if (tab === "guests" && !loadedOnce.current) {
+      loadedOnce.current = true;
+      load();
+    }
+    if (tab !== "guests") loadedOnce.current = false;
+  }, [tab, load]);
 
   const attending = guests.filter((g) => g.attending);
   const totalConfirmed = attending.reduce((s, g) => s + (g.guest_count || 1), 0);
@@ -563,7 +576,7 @@ export default function WeddingRSVP() {
   const [submittedGuest, setSubmittedGuest] = useState(null);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
 
-  const supabase = createSupabaseClient(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY);
+  const supabase = useMemo(() => createSupabaseClient(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY), [settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY]);
   const countdown = useCountdown(settings.WEDDING_DATE);
   const weddingDate = new Date(settings.WEDDING_DATE);
 
