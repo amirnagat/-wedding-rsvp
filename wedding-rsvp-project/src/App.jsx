@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS = {
   VENUE_ADDRESS: "דרך השרון 12, תל אביב",
   WAZE_LINK: "https://waze.com/ul?ll=32.0853,34.7818&navigate=yes",
   BIT_PHONE: "",
-  BIT_PHONE: "",  // מספר טלפון לביט
+  PAYBOX_PHONE: "",
   ADMIN_PASSWORD: "admin123",
   SUPABASE_URL: "https://ztpqglknrvpbmtjrzcqc.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cHFnbGtucnZwYm10anJ6Y3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNzYxMzksImV4cCI6MjA4ODY1MjEzOX0.wtW24UB6eZrYcsZi44YZMbWFWKGBeatfdQTRlnrOAlU",
@@ -311,6 +311,9 @@ function SuccessScreen({ guest, settings }) {
             {settings.BIT_PHONE && (
               <a href={`https://www.bitpay.co.il/app/pay?phoneNumber=${(settings.BIT_PHONE||"").replace(/-/g,"")}`} target="_blank" rel="noreferrer" style={{ padding:"11px 20px", borderRadius:10, textDecoration:"none", background:"linear-gradient(135deg,#27ae60,#2ecc71)", color:"#fff", fontSize:13, fontWeight:700, boxShadow:"0 4px 14px rgba(39,174,96,0.25)" }}>💳 שלח מתנה בביט</a>
             )}
+            {settings.PAYBOX_PHONE && (
+              <a href={`https://payboxapp.page.link/pay?to=972${(settings.PAYBOX_PHONE||"").replace(/^0/,"").replace(/-/g,"")}`} target="_blank" rel="noreferrer" style={{ padding:"11px 20px", borderRadius:10, textDecoration:"none", background:"linear-gradient(135deg,#6c3ce1,#9b59b6)", color:"#fff", fontSize:13, fontWeight:700, boxShadow:"0 4px 14px rgba(108,60,225,0.25)" }}>📦 שלח מתנה בPayBox</a>
+            )}
           </div>
         </>
       )}
@@ -398,6 +401,7 @@ function SettingsEditor({ settings, onSave }) {
         <SF label="כתובת מלאה" name="VENUE_ADDRESS" placeholder="רחוב, מספר, עיר" defaultValue={settings.VENUE_ADDRESS || ""} inputRef={setRef("VENUE_ADDRESS")} />
         <SF label="קישור Waze 🧭" name="WAZE_LINK" placeholder="https://waze.com/ul?..." defaultValue={settings.WAZE_LINK || ""} inputRef={setRef("WAZE_LINK")} />
         <SF label="מספר טלפון לביט 💳 (אופציונלי)" name="BIT_PHONE" placeholder="050-0000000" defaultValue={settings.BIT_PHONE || ""} inputRef={setRef("BIT_PHONE")} />
+        <SF label="מספר טלפון לPayBox 📦 (אופציונלי)" name="PAYBOX_PHONE" placeholder="050-0000000" defaultValue={settings.PAYBOX_PHONE || ""} inputRef={setRef("PAYBOX_PHONE")} />
       </div>
 
       <SectionTitle>🔐 הגדרות מערכת</SectionTitle>
@@ -682,6 +686,9 @@ export default function WeddingRSVP() {
                   <a href={settings.WAZE_LINK} target="_blank" rel="noreferrer" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 16px", borderRadius: 12, textDecoration: "none", background: "linear-gradient(135deg,#33ccff,#1a99cc)", color: "#fff", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 14px rgba(51,204,255,0.25)", fontFamily: "'Assistant', sans-serif" }}>🧭 נווט ב-Waze</a>
                   {settings.BIT_PHONE && (
                     <a href={`https://www.bitpay.co.il/app/pay?phoneNumber=${(settings.BIT_PHONE||"").replace(/-/g,"")}`} target="_blank" rel="noreferrer" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"11px 16px", borderRadius:12, textDecoration:"none", background:"linear-gradient(135deg,#27ae60,#2ecc71)", color:"#fff", fontSize:14, fontWeight:700, boxShadow:"0 4px 14px rgba(39,174,96,0.25)", fontFamily:"'Assistant', sans-serif" }}>💳 שלח מתנה בביט</a>
+                  )}
+                  {settings.PAYBOX_PHONE && (
+                    <a href={`https://payboxapp.page.link/pay?to=972${(settings.PAYBOX_PHONE||"").replace(/^0/,"").replace(/-/g,"")}`} target="_blank" rel="noreferrer" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"11px 16px", borderRadius:12, textDecoration:"none", background:"linear-gradient(135deg,#6c3ce1,#9b59b6)", color:"#fff", fontSize:14, fontWeight:700, boxShadow:"0 4px 14px rgba(108,60,225,0.25)", fontFamily:"'Assistant', sans-serif" }}>📦 שלח מתנה בPayBox</a>
                   )}
                 </div>
               </>
