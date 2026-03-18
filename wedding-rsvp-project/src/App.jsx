@@ -28,7 +28,14 @@ const DEFAULT_SETTINGS = {
 function loadSettings() {
   try {
     const s = localStorage.getItem("wedding_settings");
-    return s ? { ...DEFAULT_SETTINGS, ...JSON.parse(s) } : { ...DEFAULT_SETTINGS };
+    const saved = s ? JSON.parse(s) : {};
+    // Always use DEFAULT_SETTINGS as base so hardcoded keys are never overridden by empty saved values
+    return {
+      ...DEFAULT_SETTINGS,
+      ...saved,
+      SUPABASE_URL: saved.SUPABASE_URL || DEFAULT_SETTINGS.SUPABASE_URL,
+      SUPABASE_ANON_KEY: saved.SUPABASE_ANON_KEY || DEFAULT_SETTINGS.SUPABASE_ANON_KEY,
+    };
   } catch { return { ...DEFAULT_SETTINGS }; }
 }
 function saveSettings(s) {
@@ -478,6 +485,12 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
           {/* Export buttons */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             <button onClick={load} style={{ padding: "8px 12px", borderRadius: 9, border: "1.5px solid #e2d5b8", background: "#fff", color: "#7a6040", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>🔄 רענן</button>
+            <button onClick={() => {
+              if (window.confirm("לנקות נתונים ישנים ולטעון מחדש מ-Supabase?")) {
+                localStorage.removeItem("wedding_guests");
+                load();
+              }
+            }} style={{ padding: "8px 12px", borderRadius: 9, border: "1.5px solid #e2d5b8", background: "#fff", color: "#c0392b", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>🗑️ נקה מטמון</button>
             <div style={{ flex: 1 }} />
             <button onClick={() => exportAll(guests)} style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#7a6040,#a08050)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, boxShadow: "0 3px 8px rgba(122,96,64,0.25)" }}>📋 כולם</button>
             <button onClick={() => exportAttending(guests)} style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#27ae60,#2ecc71)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, boxShadow: "0 3px 8px rgba(39,174,96,0.25)" }}>✅ מגיעים</button>
