@@ -121,16 +121,20 @@ function exportAttending(guests) {
 function sendWhatsApp(guest, settings) {
   if (!guest.phone) return;
   const d = new Date(settings.WEDDING_DATE);
-  const dateStr = d.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" });
   const timeStr = d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
-  const msg = `שלום ${guest.full_name}! 💍
-היום זה היום הגדול!
-מזמינים אתכם לחתונה של ${settings.COUPLE_NAMES}.
-📅 ${dateStr} | ⏰ ${timeStr}
-📍 ${settings.VENUE_NAME}
-${settings.VENUE_ADDRESS}
+  const msg = `✨ הגיע הרגע! ✨
 
-מחכים לכם! 🎉`;
+${guest.full_name} היקר/ה,
+
+הגיע היום המיוחד — היום מתחתנים ${settings.COUPLE_NAMES}! 💍🎊
+
+אנחנו כל כך שמחים שאתם חלק מהיום הזה ומחכים לראותכם!
+
+📍 ${settings.VENUE_NAME}
+🏠 ${settings.VENUE_ADDRESS}
+⏰ קבלת פנים בשעה ${timeStr}
+
+נסעו בזהירות ונתראה בשמחות! 🥂💕`;
   const phone = guest.phone.replace(/[^0-9]/g, "").replace(/^0/, "972");
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
