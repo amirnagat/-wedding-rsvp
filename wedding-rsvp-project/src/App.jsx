@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 // ── Supabase SQL Schema (for reference) ──────────────────────────────────────
 // create table guests (
@@ -215,9 +215,7 @@ function RSVPForm({ onSuccess, settings, supabase }) {
       <Field label="שם מלא *">
         <input style={iStyle("name")} placeholder="הכניסו את שמכם המלא" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} onFocus={() => setFocus("name")} onBlur={() => setFocus("")} />
       </Field>
-      <Field label="מספר טלפון">
-        <input style={iStyle("phone")} placeholder="050-0000000" value={form.phone} onChange={(e) => set("phone", e.target.value)} onFocus={() => setFocus("phone")} onBlur={() => setFocus("")} />
-      </Field>
+
       <Field label="האם תגיעו?">
         <div style={{ display: "flex", gap: 10 }}>
           {[{ v: true, label: "✓ מגיע / מגיעה" }, { v: false, label: "✗ לא מגיע/ה" }].map(({ v, label }) => (
@@ -264,40 +262,43 @@ function SuccessScreen({ guest, settings }) {
 }
 
 // ── Settings Editor ───────────────────────────────────────────────────────────
+// ── Settings input field — defined OUTSIDE component to prevent re-mount on every keystroke
 function SettingsEditor({ settings, onSave }) {
-  const [draft, setDraft] = useState({ ...settings });
+  const refs = {
+    COUPLE_NAMES: useRef(null),
+    WEDDING_DATE: useRef(null),
+    WEDDING_TIME: useRef(null),
+    VENUE_NAME: useRef(null),
+    VENUE_ADDRESS: useRef(null),
+    WAZE_LINK: useRef(null),
+    ADMIN_PASSWORD: useRef(null),
+    SUPABASE_URL: useRef(null),
+    SUPABASE_ANON_KEY: useRef(null),
+  };
   const [saved, setSaved] = useState(false);
-  const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
 
   const handleSave = () => {
-    onSave(draft);
+    const updated = { ...settings };
+    Object.keys(refs).forEach((k) => {
+      if (k !== "WEDDING_TIME" && refs[k] && refs[k].current) updated[k] = refs[k].current.value;
+    });
+    // Combine date + time into single WEDDING_DATE string
+    const dateVal = refs.WEDDING_DATE.current?.value || "";
+    const timeVal = refs.WEDDING_TIME.current?.value || "18:00";
+    if (dateVal) updated.WEDDING_DATE = `${dateVal}T${timeVal}`;
+    onSave(updated);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const inputBase = {
+  const inputStyle = (isDate) => ({
     width: "100%", padding: "10px 14px", borderRadius: 10,
-    border: "1.5px solid #e2d5b8",
-    background: "rgba(255,253,247,0.9)", fontSize: 14, color: "#3d2e1a",
-    outline: "none", fontFamily: "inherit", transition: "border-color 0.2s",
-  };
-
-  const handleFocus = (e) => { e.target.style.borderColor = "#c9a84c"; };
-  const handleBlur = (e) => { e.target.style.borderColor = "#e2d5b8"; };
-
-  const EditField = useCallback(({ label, fieldKey, type = "text", placeholder = "" }) => (
-    <Field label={label}>
-      <input
-        type={type}
-        style={{ ...inputBase, direction: type === "datetime-local" ? "ltr" : "rtl", textAlign: type === "datetime-local" ? "left" : "right" }}
-        value={draft[fieldKey]}
-        placeholder={placeholder}
-        onChange={(e) => set(fieldKey, e.target.value)}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-      />
-    </Field>
-  ), [draft]);
+    border: "1.5px solid #e2d5b8", background: "rgba(255,253,247,0.9)",
+    fontSize: 14, color: "#3d2e1a", outline: "none", fontFamily: "inherit",
+    transition: "border-color 0.2s",
+    direction: isDate ? "ltr" : "rtl",
+    textAlign: isDate ? "left" : "right",
+  });
 
   const SectionTitle = ({ children }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "22px 0 14px" }}>
@@ -309,49 +310,74 @@ function SettingsEditor({ settings, onSave }) {
 
   return (
     <div style={{ direction: "rtl" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
         <span style={{ fontSize: 26 }}>⚙️</span>
         <div>
           <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#3d2e1a", margin: 0 }}>הגדרות האירוע</h3>
-          <p style={{ fontSize: 11, color: "#9a8060", margin: 0 }}>השינויים מתעדכנים מיידית בכל הדף</p>
+          <p style={{ fontSize: 11, color: "#9a8060", margin: 0 }}>הקלד ולחץ שמור — השינויים יתעדכנו מיד</p>
         </div>
       </div>
 
       <SectionTitle>💑 פרטי הזוג</SectionTitle>
-      <EditField label="שמות החתן והכלה" fieldKey="COUPLE_NAMES" placeholder="שם & שם" />
+      <Field label="שמות החתן והכלה">
+        <input ref={refs.COUPLE_NAMES} type="text" defaultValue={settings.COUPLE_NAMES} placeholder="שם & שם" style={inputStyle(false)} onFocus={(e)=>e.target.style.borderColor="#c9a84c"} onBlur={(e)=>e.target.style.borderColor="#e2d5b8"} />
+      </Field>
 
       <SectionTitle>📅 תאריך ושעה</SectionTitle>
-      <EditField label="תאריך ושעת החתונה" fieldKey="WEDDING_DATE" type="datetime-local" />
+      <div style={{ display: "flex", gap: 10 }}>
+        <Field label="תאריך החתונה 📅" style={{ flex: 2 }}>
+          <input
+            ref={refs.WEDDING_DATE}
+            type="date"
+            defaultValue={settings.WEDDING_DATE ? settings.WEDDING_DATE.split("T")[0] : ""}
+            style={{ ...inputStyle(true), flex: 1 }}
+            onFocus={(e)=>e.target.style.borderColor="#c9a84c"}
+            onBlur={(e)=>e.target.style.borderColor="#e2d5b8"}
+          />
+        </Field>
+        <Field label="שעה ⏰" style={{ flex: 1 }}>
+          <input
+            ref={refs.WEDDING_TIME}
+            type="time"
+            defaultValue={settings.WEDDING_DATE && settings.WEDDING_DATE.includes("T") ? settings.WEDDING_DATE.split("T")[1] : "18:00"}
+            style={{ ...inputStyle(true), flex: 1 }}
+            onFocus={(e)=>e.target.style.borderColor="#c9a84c"}
+            onBlur={(e)=>e.target.style.borderColor="#e2d5b8"}
+          />
+        </Field>
+      </div>
 
       <SectionTitle>🏛 מיקום האירוע</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <EditField label="שם האולם" fieldKey="VENUE_NAME" placeholder="שם האולם, עיר" />
-        <EditField label="כתובת מלאה" fieldKey="VENUE_ADDRESS" placeholder="רחוב, מספר, עיר" />
-        <EditField label="קישור Waze 🧭" fieldKey="WAZE_LINK" placeholder="https://waze.com/ul?..." />
+        <Field label="שם האולם">
+          <input ref={refs.VENUE_NAME} type="text" defaultValue={settings.VENUE_NAME} placeholder="שם האולם, עיר" style={inputStyle(false)} onFocus={(e)=>e.target.style.borderColor="#c9a84c"} onBlur={(e)=>e.target.style.borderColor="#e2d5b8"} />
+        </Field>
+        <Field label="כתובת מלאה">
+          <input ref={refs.VENUE_ADDRESS} type="text" defaultValue={settings.VENUE_ADDRESS} placeholder="רחוב, מספר, עיר" style={inputStyle(false)} onFocus={(e)=>e.target.style.borderColor="#c9a84c"} onBlur={(e)=>e.target.style.borderColor="#e2d5b8"} />
+        </Field>
+        <Field label="קישור Waze 🧭">
+          <input ref={refs.WAZE_LINK} type="text" defaultValue={settings.WAZE_LINK} placeholder="https://waze.com/ul?..." style={inputStyle(false)} onFocus={(e)=>e.target.style.borderColor="#c9a84c"} onBlur={(e)=>e.target.style.borderColor="#e2d5b8"} />
+        </Field>
       </div>
 
       <SectionTitle>🔐 הגדרות מערכת</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <EditField label="סיסמת אדמין" fieldKey="ADMIN_PASSWORD" type="password" />
-        <EditField label="Supabase URL" fieldKey="SUPABASE_URL" placeholder="https://xxx.supabase.co" />
-        <EditField label="Supabase Anon Key" fieldKey="SUPABASE_ANON_KEY" placeholder="eyJhbGci..." />
-      </div>
-
-      {/* Preview badge */}
-      <div style={{ marginTop: 18, padding: "12px 16px", borderRadius: 12, background: "rgba(201,168,76,0.08)", border: "1px dashed rgba(201,168,76,0.4)" }}>
-        <p style={{ fontSize: 12, color: "#9a8060", marginBottom: 4, fontWeight: 700 }}>תצוגה מקדימה:</p>
-        <p style={{ fontSize: 15, fontFamily: "'Playfair Display', serif", color: "#c9a84c", marginBottom: 2 }}>{draft.COUPLE_NAMES || "—"}</p>
-        <p style={{ fontSize: 12, color: "#7a6040" }}>
-          {draft.WEDDING_DATE ? new Date(draft.WEDDING_DATE).toLocaleDateString("he-IL", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "—"} | {draft.VENUE_NAME || "—"}
-        </p>
+        <Field label="סיסמת אדמין">
+          <input ref={refs.ADMIN_PASSWORD} type="password" defaultValue={settings.ADMIN_PASSWORD} style={inputStyle(false)} onFocus={(e)=>e.target.style.borderColor="#c9a84c"} onBlur={(e)=>e.target.style.borderColor="#e2d5b8"} />
+        </Field>
+        <Field label="Supabase URL">
+          <input ref={refs.SUPABASE_URL} type="text" defaultValue={settings.SUPABASE_URL} placeholder="https://xxx.supabase.co" style={inputStyle(false)} onFocus={(e)=>e.target.style.borderColor="#c9a84c"} onBlur={(e)=>e.target.style.borderColor="#e2d5b8"} />
+        </Field>
+        <Field label="Supabase Anon Key">
+          <input ref={refs.SUPABASE_ANON_KEY} type="text" defaultValue={settings.SUPABASE_ANON_KEY} placeholder="eyJhbGci..." style={inputStyle(false)} onFocus={(e)=>e.target.style.borderColor="#c9a84c"} onBlur={(e)=>e.target.style.borderColor="#e2d5b8"} />
+        </Field>
       </div>
 
       <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
         <button onClick={handleSave} style={{ flex: 1, padding: "13px", borderRadius: 12, border: "none", background: saved ? "linear-gradient(135deg,#27ae60,#2ecc71)" : "linear-gradient(135deg,#c9a84c,#e8c96a)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "'Playfair Display', serif", boxShadow: "0 4px 16px rgba(201,168,76,0.3)", transition: "all 0.35s" }}>
           {saved ? "✓ נשמר בהצלחה!" : "💾 שמור שינויים"}
         </button>
-        <button onClick={() => { if (window.confirm("לאפס את כל ההגדרות לברירת מחדל?")) setDraft({ ...DEFAULT_SETTINGS }); }} style={{ padding: "13px 16px", borderRadius: 12, border: "1.5px solid #e2d5b8", background: "#fff", color: "#9a8060", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }} title="איפוס">↩</button>
+        <button onClick={() => { if (window.confirm("לאפס את כל ההגדרות לברירת מחדל?")) { Object.keys(refs).forEach(k => { if (refs[k].current) refs[k].current.value = DEFAULT_SETTINGS[k] || ""; }); } }} style={{ padding: "13px 16px", borderRadius: 12, border: "1.5px solid #e2d5b8", background: "#fff", color: "#9a8060", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }} title="איפוס">↩</button>
       </div>
 
       {saved && (
@@ -363,7 +389,6 @@ function SettingsEditor({ settings, onSave }) {
   );
 }
 
-// ── Admin Dashboard ────────────────────────────────────────────────────────────
 function AdminDashboard({ settings, onSettingsSave, supabase }) {
   const [tab, setTab] = useState("guests");
   const [guests, setGuests] = useState([]);
