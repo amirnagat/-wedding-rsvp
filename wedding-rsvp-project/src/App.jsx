@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_SETTINGS = {
-  COUPLE_NAMES: "אמיר & עמית",
+  COUPLE_NAMES: "נועה & יונתן",
   WEDDING_DATE: "2025-09-14T18:00",
   VENUE_NAME: "אולם השושנה, תל אביב",
   VENUE_ADDRESS: "דרך השרון 12, תל אביב",
