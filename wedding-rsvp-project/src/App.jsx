@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 // ── Supabase SQL Schema (for reference) ──────────────────────────────────────
 // create table guests (
@@ -399,9 +399,9 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
     try { const data = supabase ? await supabase.select() : lsGetGuests(); setGuests(data || []); }
     catch { setGuests(lsGetGuests()); }
     setLoading(false);
-  }, [supabase]);
+  }, []); // eslint-disable-line
 
-  useEffect(() => { if (tab === "guests") load(); }, [tab, load]);
+  useEffect(() => { if (tab === "guests") load(); }, [tab]); // eslint-disable-line
 
   const attending = guests.filter((g) => g.attending);
   const totalConfirmed = attending.reduce((s, g) => s + (g.guest_count || 1), 0);
@@ -521,7 +521,7 @@ export default function WeddingRSVP() {
   const [submittedGuest, setSubmittedGuest] = useState(null);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
 
-  const supabase = createSupabaseClient(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY);
+  const supabase = useMemo(() => createSupabaseClient(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY), [settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY]);
   const countdown = useCountdown(settings.WEDDING_DATE);
   const weddingDate = new Date(settings.WEDDING_DATE);
 
