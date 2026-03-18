@@ -118,6 +118,45 @@ function exportAttending(guests) {
   downloadCSV([hdr, ...rows, ["", "", "", "", ""], totalRow], "מגיעים.csv");
 }
 
+function sendWhatsApp(guest, settings) {
+  if (!guest.phone) return;
+  const d = new Date(settings.WEDDING_DATE);
+  const dateStr = d.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" });
+  const timeStr = d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+  const msg = `שלום ${guest.full_name}! 💍
+היום זה היום הגדול!
+מזמינים אתכם לחתונה של ${settings.COUPLE_NAMES}.
+📅 ${dateStr} | ⏰ ${timeStr}
+📍 ${settings.VENUE_NAME}
+${settings.VENUE_ADDRESS}
+
+מחכים לכם! 🎉`;
+  const phone = guest.phone.replace(/[^0-9]/g, "").replace(/^0/, "972");
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+function sendWhatsAppAll(guests, settings) {
+  const withPhone = guests.filter(g => g.attending && g.phone);
+  if (withPhone.length === 0) { alert("אין אורחים מגיעים עם מספר טלפון"); return; }
+  // Open one at a time — user clicks each
+  let i = 0;
+  function next() {
+    if (i >= withPhone.length) return;
+    sendWhatsApp(withPhone[i], settings);
+    i++;
+    if (i < withPhone.length) {
+      if (window.confirm(`נשלח ל-${withPhone[i-1].full_name} ✓
+
+לחץ אישור לשליחה ל-${withPhone[i].full_name}`)) next();
+    } else {
+      alert(`הסתיים! נשלחו תזכורות ל-${withPhone.length} אורחים ✓`);
+    }
+  }
+  if (window.confirm(`לשלוח תזכורת WhatsApp ל-${withPhone.length} אורחים?
+
+תצטרך לאשר כל שליחה בנפרד.`)) next();
+}
+
 function exportNotAttending(guests) {
   const list = guests.filter((g) => !g.attending);
   const hdr = ["#", "שם מלא", "טלפון", "תאריך רישום"];
@@ -216,6 +255,9 @@ function RSVPForm({ onSuccess, settings, supabase }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <Field label="שם מלא *">
         <input style={iStyle("name")} placeholder="הכניסו את שמכם המלא" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} onFocus={() => setFocus("name")} onBlur={() => setFocus("")} />
+      </Field>
+      <Field label="מספר טלפון 📱">
+        <input style={iStyle("phone")} placeholder="050-0000000" value={form.phone} onChange={(e) => set("phone", e.target.value)} onFocus={() => setFocus("phone")} onBlur={() => setFocus("")} />
       </Field>
       <Field label="האם תגיעו?">
         <div style={{ display: "flex", gap: 10 }}>
@@ -411,12 +453,25 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
       {tab === "guests" && (
         <>
           {/* Export buttons */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             <button onClick={load} style={{ padding: "8px 12px", borderRadius: 9, border: "1.5px solid #e2d5b8", background: "#fff", color: "#7a6040", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>🔄 רענן</button>
             <div style={{ flex: 1 }} />
             <button onClick={() => exportAll(guests)} style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#7a6040,#a08050)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, boxShadow: "0 3px 8px rgba(122,96,64,0.25)" }}>📋 כולם</button>
             <button onClick={() => exportAttending(guests)} style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#27ae60,#2ecc71)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, boxShadow: "0 3px 8px rgba(39,174,96,0.25)" }}>✅ מגיעים</button>
             <button onClick={() => exportNotAttending(guests)} style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#e74c3c,#c0392b)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, boxShadow: "0 3px 8px rgba(231,76,60,0.25)" }}>❌ לא מגיעים</button>
+          </div>
+          {/* WhatsApp reminder */}
+          <div style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.25)", borderRadius: 12, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#1a7a3c", margin: 0 }}>📱 תזכורת WhatsApp לאורחים</p>
+              <p style={{ fontSize: 11, color: "#5a9a6a", margin: 0, marginTop: 2 }}>שולח הודעה אישית לכל מגיע עם מספר טלפון</p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => sendWhatsAppAll(guests, settings)}
+                style={{ padding: "9px 16px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#25d366,#128c7e)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700, boxShadow: "0 3px 10px rgba(37,211,102,0.35)", whiteSpace: "nowrap" }}
+              >📲 שלח לכולם</button>
+            </div>
           </div>
 
 
@@ -449,7 +504,7 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "linear-gradient(135deg,#c9a84c,#e8c96a)" }}>
-                    {["שם מלא", "טלפון", "סטטוס", "אורחים", "תאריך"].map((h) => (
+                    {["שם מלא", "טלפון", "סטטוס", "אורחים", "תאריך", ""].map((h) => (
                       <th key={h} style={{ padding: "11px 12px", color: "#fff", fontWeight: 700, textAlign: "right", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -464,6 +519,11 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
                       </td>
                       <td style={{ padding: "10px 12px", color: "#7a6040", textAlign: "center" }}>{g.attending ? g.guest_count : "—"}</td>
                       <td style={{ padding: "10px 12px", color: "#9a8060", fontSize: 11, whiteSpace: "nowrap" }}>{new Date(g.created_at).toLocaleDateString("he-IL")}</td>
+                      <td style={{ padding: "10px 8px" }}>
+                        {g.phone && g.attending && (
+                          <button onClick={() => sendWhatsApp(g, settings)} style={{ padding: "4px 10px", borderRadius: 7, border: "none", background: "linear-gradient(135deg,#25d366,#128c7e)", color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>📲</button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
