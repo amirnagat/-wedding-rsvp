@@ -425,24 +425,30 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
   const supabaseRef = useRef(supabase);
   useEffect(() => { supabaseRef.current = supabase; }, [supabase]);
 
+  const [loadError, setLoadError] = useState("");
+
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const sb = supabaseRef.current;
-      const data = sb ? await sb.select() : lsGetGuests();
-      setGuests(data || []);
-    } catch { setGuests(lsGetGuests()); }
+      if (sb) {
+        const data = await sb.select();
+        setGuests(data || []);
+      } else {
+        setGuests(lsGetGuests());
+      }
+    } catch (e) {
+      console.error("Load error:", e);
+      setLoadError("שגיאה בטעינה מ-Supabase: " + e.message);
+      setGuests(lsGetGuests());
+    }
     setLoading(false);
   }, []);
 
-  const loadedOnce = useRef(false);
   useEffect(() => {
-    if (tab === "guests" && !loadedOnce.current) {
-      loadedOnce.current = true;
-      load();
-    }
-    if (tab !== "guests") loadedOnce.current = false;
-  }, [tab, load]);
+    if (tab === "guests") load();
+  }, [tab]);
 
   const attending = guests.filter((g) => g.attending);
   const totalConfirmed = attending.reduce((s, g) => s + (g.guest_count || 1), 0);
@@ -512,6 +518,11 @@ function AdminDashboard({ settings, onSettingsSave, supabase }) {
             </div>
           </div>
 
+          {loadError && (
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(231,76,60,0.1)", border: "1px solid rgba(231,76,60,0.3)", color: "#c0392b", fontSize: 12, marginBottom: 12, textAlign: "center" }}>
+              ⚠️ {loadError}
+            </div>
+          )}
           {loading ? (
             <div style={{ textAlign: "center", padding: 32, color: "#c9a84c" }}>טוען...</div>
           ) : guests.length === 0 ? (
