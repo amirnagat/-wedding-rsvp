@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_SETTINGS = {
-  COUPLE_NAMES: "נועה & יונתן",
+  COUPLE_NAMES: "אמיר & עמית",
   WEDDING_DATE: "2025-09-14T18:00",
   VENUE_NAME: "אולם השושנה, תל אביב",
   VENUE_ADDRESS: "דרך השרון 12, תל אביב",
@@ -235,8 +235,19 @@ function RSVPForm({ onSuccess, settings, supabase }) {
     outline: "none", fontFamily: "inherit", direction: "rtl", transition: "border-color 0.2s",
   });
 
+  const validatePhone = (phone) => {
+    if (!phone) return true; // phone is optional
+    const digits = phone.replace(/[^0-9]/g, "");
+    if (!digits.startsWith("05") && !digits.startsWith("972")) return "מספר טלפון חייב להתחיל ב-05";
+    if (digits.length < 10) return `חסרות ${10 - digits.length} ספרות במספר הטלפון`;
+    if (digits.length > 10) return "מספר הטלפון ארוך מדי";
+    return true;
+  };
+
   const submit = async () => {
     if (!form.full_name.trim()) { setError("נא להזין שם מלא"); return; }
+    const phoneCheck = validatePhone(form.phone);
+    if (phoneCheck !== true) { setError(phoneCheck); return; }
     setLoading(true); setError("");
     const guest = {
       full_name: form.full_name.trim(),
@@ -268,7 +279,28 @@ function RSVPForm({ onSuccess, settings, supabase }) {
         <input style={iStyle("name")} placeholder="הכניסו את שמכם המלא" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} onFocus={() => setFocus("name")} onBlur={() => setFocus("")} />
       </Field>
       <Field label="מספר טלפון 📱">
-        <input style={iStyle("phone")} placeholder="050-0000000" value={form.phone} onChange={(e) => set("phone", e.target.value)} onFocus={() => setFocus("phone")} onBlur={() => setFocus("")} />
+        <div style={{ position: "relative" }}>
+          <input
+            style={{
+              ...iStyle("phone"),
+              paddingLeft: form.phone ? "36px" : "14px",
+              borderColor: form.phone && validatePhone(form.phone) !== true ? "#e74c3c" : focus === "phone" ? "#c9a84c" : "#e2d5b8"
+            }}
+            placeholder="050-0000000"
+            value={form.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            onFocus={() => setFocus("phone")}
+            onBlur={() => setFocus("")}
+          />
+          {form.phone && (
+            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14 }}>
+              {validatePhone(form.phone) === true ? "✅" : "❌"}
+            </span>
+          )}
+        </div>
+        {form.phone && validatePhone(form.phone) !== true && (
+          <p style={{ fontSize: 11, color: "#e74c3c", marginTop: 4, marginRight: 2 }}>⚠️ {validatePhone(form.phone)}</p>
+        )}
       </Field>
       <Field label="האם תגיעו?">
         <div style={{ display: "flex", gap: 10 }}>
